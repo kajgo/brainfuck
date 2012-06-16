@@ -25,9 +25,9 @@ main = hspecX $ do
         it "prints the first item" $ do
             printOut (Tape [] [65]) @?= 'A'
 
-    describe "read" $ do
-        it "reads a character" $ do
-            readIn (Tape [] [0]) 'A' @?= (Tape [] [65])
+--    describe "read" $ do
+--        it "reads a character" $ do
+--            readIn (Tape [] [0]) 'A' @?= (Tape [] [65])
 
     describe "move forward" $ do
         it "takes one step forward" $ do
@@ -63,23 +63,23 @@ main = hspecX $ do
             begin (Machine (Tape [0] [0] ) "" (Program "" "[[]]")) @?=
                 (Machine (Tape [0] [0] ) "" (Program "[[]" "]"))
 
-    describe "runProgram" $ do
-        it "runs a single increment" $ do
-            tape(runProgram (aMachineWithProgram "+")) @?= (Tape [] [1])
-        it "runs two increments" $ do
-            tape(runProgram (aMachineWithProgram "++")) @?= (Tape [] [2])
-        it "increments and decrements back to zero" $ do
-            tape(runProgram (aMachineWithProgram "++--")) @?= anEmptyTape
-        it "prints the first item" $ do
-            output(runProgram (Machine (Tape [] [65]) "" (Program "" "."))) @?= "A"
-        it "moves forward" $ do
-            tape(runProgram(Machine (Tape [] [65]) "" (Program "" ">"))) @?=
-                (Tape [65] [0])
-        it "moves backwards" $ do
-            tape(runProgram(Machine (Tape [65] [65]) "" (Program "" "<"))) @?=
-                (Tape [] [65, 65])
-        it "loops once" $ do
-            tape(runProgram (Machine (Tape [] [1, 65]) "" (Program "" "[>.<-]"))) @?=
-                (Tape [] [0, 65])
-            output(runProgram (Machine (Tape [] [1, 65]) "" (Program "" "[>.<-]"))) @?=
-                "A"
+--    describe "runProgram" $ do
+--        it "runs a single increment" $ do
+--            tape(runProgram (aMachineWithProgram "+")) @?= (Tape [] [1])
+--        it "runs two increments" $ do
+--            tape(runProgram (aMachineWithProgram "++")) @?= (Tape [] [2])
+--        it "increments and decrements back to zero" $ do
+--            tape(runProgram (aMachineWithProgram "++--")) @?= anEmptyTape
+--        it "prints the first item" $ do
+--            output(runProgram (Machine (Tape [] [65]) "" (Program "" "."))) @?= "A"
+--        it "moves forward" $ do
+--            tape(runProgram(Machine (Tape [] [65]) "" (Program "" ">"))) @?=
+--                (Tape [65] [0])
+--        it "moves backwards" $ do
+--            tape(runProgram(Machine (Tape [65] [65]) "" (Program "" "<"))) @?=
+--                (Tape [] [65, 65])
+--        it "loops once" $ do
+--            tape(runProgram (Machine (Tape [] [1, 65]) "" (Program "" "[>.<-]"))) @?=
+--                (Tape [] [0, 65])
+--            output(runProgram (Machine (Tape [] [1, 65]) "" (Program "" "[>.<-]"))) @?=
+--                "A"

@@ -14,6 +14,7 @@ data Machine = Machine {
     program :: Program }
     deriving (Show, Eq)
 
+
 increment (Tape before after) =
     Tape (before) ( head(after) + 1 : tail(after) )
 decrement (Tape before after) =
@@ -30,8 +31,9 @@ back (Tape before after) =
 
 printOut (Tape before after) =
     chr (head(after))
-readIn (Tape before (_:rest)) char =
-    Tape before ((ord char) : rest)
+readIn (Tape before (_ : rest)) = do
+    c <- getChar
+    return (Tape before ((ord c) : rest))
 
 end (Machine (Tape before (0:after)) out program) =
     (Machine (Tape before (0:after)) out (next(program)))
@@ -42,8 +44,10 @@ begin (Machine (Tape before (0:after)) out program) =
 begin (Machine tape out program) =
     (Machine tape out (next(program)))
 
+
 next (Program before after) =
     Program (before ++ [head(after)]) (tail(after))
+
 
 jumpBack :: Program -> Int -> Program
 jumpBack (Program before ('[':rest)) 0 =
@@ -72,7 +76,10 @@ runProgram (Machine tape output (Program before ('-' : rest))) =
     runProgram (Machine (decrement tape) output (next(Program before ('-' : rest))))
 
 runProgram (Machine tape output (Program before ('.' : rest))) = do
-    runProgram (Machine tape (output ++ [printOut tape]) (next(Program before ('-' : rest))))
+    runProgram (Machine tape (output ++ [printOut tape]) (next(Program before ('.' : rest))))
+runProgram (Machine tape output (Program before (',' : rest))) = do
+    readTape <- (readIn tape)
+    runProgram (Machine readTape output (next(Program before (',' : rest))))
 
 runProgram (Machine tape output (Program before ('>' : rest))) =
     runProgram (Machine (forward tape) output (next(Program before ('>' : rest))))
@@ -84,17 +91,17 @@ runProgram (Machine tape output (Program before ('[' : rest))) =
 runProgram (Machine tape output (Program before (']' : rest))) =
     runProgram (end (Machine tape output (Program before (']' : rest))))
 
+runProgram (Machine tape output (Program before (cur:rest))) =
+    runProgram (Machine tape output (next(Program before (cur:rest))))
 runProgram (Machine tape output (Program before "")) =
-    (Machine tape output (Program before ""))
+    return (Machine tape output (Program before ""))
 runProgram other =
-    Machine (Tape [] []) "" (Program "" "")
---runProgram (Machine tape output (Program before (cur:rest))) =
---    runProgram (Machine tape output (Program (before ++ [cur]) rest))
+    return (Machine (Tape [] []) "" (Program "" ""))
 
 
 execute :: String -> IO ()
 execute program = do
-    let machine = runProgram (Machine (Tape [] [0]) "" (Program "" program))
+    machine <- runProgram (Machine (Tape [] [0]) "" (Program "" program))
     if (tape(machine) == Tape [] [])
         then putStr("error!")
         else putStrLn $ output(machine) ++ "done!"
