@@ -4,13 +4,13 @@ import Test.Hspec.Monadic
 import Test.HUnit
 
 anEmptyTape :: Tape
-anEmptyTape = (Tape [] [0])
+anEmptyTape = ([], [0])
 
 aTapeAtPosition :: [Int] -> Int -> Tape
-aTapeAtPosition contents pos = (Tape (take pos contents) (drop pos contents))
+aTapeAtPosition contents pos = ((take pos contents), (drop pos contents))
 
 contentsOfTape :: Tape -> [Int]
-contentsOfTape (Tape before after) = before ++ after
+contentsOfTape (before, after) = before ++ after
 
 aMachineWithProgram p = (Machine anEmptyTape "" (Program "" p))
 

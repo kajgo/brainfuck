@@ -2,11 +2,10 @@ module Brainfuck where
 
 import Data.Char
 
-data Tape = Tape {memBefore, memAfter :: [Int]}
-    deriving (Show, Eq)
+type Tape = ([Int], [Int])
 
 emptyTape :: Tape
-emptyTape = (Tape [] [0])
+emptyTape = ([], [0])
 
 data Program = Program {before, after :: String}
     deriving (Show, Eq)
@@ -21,32 +20,36 @@ data Machine = Machine {
     deriving (Show, Eq)
 
 
-increment (Tape before (x:xs)) =
-    (Tape before (x+1:xs))
-decrement (Tape before (x:xs)) =
-    (Tape before (x-1:xs))
+atTape :: Tape -> Int
+atTape (_, (cur:_)) = cur
 
-forward (Tape before [x]) =
-    Tape (before ++ [x]) [0]
-forward (Tape before (x:xs)) =
-    Tape (before ++ [x]) xs
-back l@(Tape [] after) = l
-back (Tape before after) =
-    Tape (init before) $ last before : after
+atProgram :: Program -> Char
+atProgram (Program before (cur:rest)) = cur
+
+putAtTape :: Tape -> Int -> Tape
+putAtTape (before, (_:xs)) v = (before, (v:xs))
+
+forward (before, [x]) =
+    (before ++ [x], [0])
+forward (before, (x:xs)) =
+    (before ++ [x], xs)
+back l@([], after) = l
+back (before, after) =
+    (init before, last before : after)
 
 next (Program before after) =
     Program (before ++ [head(after)]) (tail(after))
 prev (Program before after) =
     Program (init(before)) (last(before) : after)
 
-atTape :: Tape -> Int
-atTape (Tape _ (cur:_)) = cur
 
-atProgram :: Program -> Char
-atProgram (Program before (cur:rest)) = cur
+increment :: Tape -> Tape
+increment tape =
+    putAtTape tape $ atTape tape + 1
 
-putAtTape :: Tape -> Int -> Tape
-putAtTape (Tape before (_:xs)) v = (Tape before (v:xs))
+decrement :: Tape -> Tape
+decrement tape =
+    putAtTape tape $ atTape tape - 1
 
 printOut tape = chr $ atTape tape
 readIn tape = do
