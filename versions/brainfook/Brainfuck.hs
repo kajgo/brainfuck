@@ -2,10 +2,11 @@ module Brainfuck where
 
 import Data.Char
 
+-- Tape is a list containing current focus and a list with the skipped elements in reverse order
 type Tape = ([Int], [Int])
 
 emptyTape :: Tape
-emptyTape = ([], [0])
+emptyTape = ([0], [])
 
 data Program = Program {before, after :: String}
     deriving (Show, Eq)
@@ -21,21 +22,21 @@ data Machine = Machine {
 
 
 atTape :: Tape -> Int
-atTape (_, (cur:_)) = cur
+atTape (cur:_, _) = cur
 
 atProgram :: Program -> Char
 atProgram (Program before (cur:rest)) = cur
 
 putAtTape :: Tape -> Int -> Tape
-putAtTape (before, (_:xs)) v = (before, (v:xs))
+putAtTape (_:xs, bs) v = (v:xs, bs)
 
-forward (before, [x]) =
-    (before ++ [x], [0])
-forward (before, (x:xs)) =
-    (before ++ [x], xs)
-back l@([], after) = l
-back (before, after) =
-    (init before, last before : after)
+forward (x:[], bs) =
+    ([0], x:bs)
+forward (x:xs, bs) =
+    (xs, x:bs)
+back l@(xs, []) = l
+back (xs, x:bs) =
+    (x:xs, bs)
 
 next (Program before after) =
     Program (before ++ [head(after)]) (tail(after))
