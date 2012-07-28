@@ -11,6 +11,9 @@ emptyTape = (Tape [] [0])
 data Program = Program {before, after :: String}
     deriving (Show, Eq)
 
+newProgram :: String -> Program
+newProgram text = (Program "" (text ++ "\0"))
+
 data Machine = Machine {
     tape :: Tape,
     output :: String,
@@ -75,7 +78,6 @@ jumpForward p depth = case (atProgram p, depth) of
 
 
 runProgram :: Machine -> IO Machine
-runProgram machine@(Machine _ _ (Program _ "")) = return machine
 runProgram machine@(Machine tape output program) =
     case atProgram program of
       '+' -> runProgram (Machine (increment tape) output (next program))
@@ -88,10 +90,11 @@ runProgram machine@(Machine tape output program) =
       '<' -> runProgram (Machine (back tape) output (next program))
       '[' -> runProgram (begin machine)
       ']' -> runProgram (end machine)
+      '\0' -> return machine
       otherwise -> runProgram (Machine tape output (next program))
 
 
 execute :: String -> IO ()
 execute program = do
-    machine <- runProgram (Machine emptyTape "" (Program "" program))
+    machine <- runProgram (Machine emptyTape "" $ newProgram program)
     putStrLn $ output(machine) ++ "done!"
