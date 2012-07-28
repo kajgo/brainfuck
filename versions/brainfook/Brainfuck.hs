@@ -41,62 +41,60 @@ readIn (Tape before (_ : rest)) = do
     c <- getChar
     return (Tape before ((ord c) : rest))
 
-end (Machine (Tape before (0:after)) out program) =
-    (Machine (Tape before (0:after)) out (next(program)))
+end (Machine tape@(Tape _ (0:_)) out program) =
+    (Machine tape out (next(program)))
 end (Machine tape out program) =
     (Machine tape out (jumpBack program (-1)))
-begin (Machine (Tape before (0:after)) out program) =
-    (Machine (Tape before (0:after)) out (jumpForward program (-1)))
+begin (Machine tape@(Tape _ (0:_)) out program) =
+    (Machine tape out (jumpForward program (-1)))
 begin (Machine tape out program) =
     (Machine tape out (next(program)))
 
 
 jumpBack :: Program -> Int -> Program
-jumpBack (Program before ('[':rest)) 0 =
-    (Program before ('[':rest))
-jumpBack (Program before ('[':rest)) depth =
-    jumpBack (Program (init(before)) ((last(before)):'[':rest)) (depth - 1)
-jumpBack (Program before (']':rest)) depth =
-    jumpBack (Program (init(before)) ((last(before)):']':rest)) (depth + 1)
-jumpBack (Program before after) depth =
-    jumpBack (Program (init(before)) ((last(before)):after)) depth
+jumpBack program@(Program _ ('[':_)) 0 = program
+jumpBack program@(Program _ ('[':_)) depth =
+    jumpBack (prev program) (depth - 1)
+jumpBack program@(Program _ (']':_)) depth =
+    jumpBack (prev program) (depth + 1)
+jumpBack program depth =
+    jumpBack (prev program) depth
 
 jumpForward :: Program -> Int -> Program
-jumpForward (Program before (']':rest)) 0 =
-    (Program before (']':rest))
-jumpForward (Program before (']':rest)) depth =
-    jumpForward (Program (before ++ "]") rest) (depth - 1)
-jumpForward (Program before ('[':rest)) depth =
-    jumpForward (Program (before ++ "[") rest) (depth + 1)
-jumpForward (Program before after) depth =
-    jumpForward (Program (before ++ [head(after)]) (tail(after))) depth
+jumpForward program@(Program _ (']':_)) 0 = program
+jumpForward program@(Program _ (']':_)) depth =
+    jumpForward (next program) (depth - 1)
+jumpForward program@(Program _ ('[':_)) depth =
+    jumpForward (next program) (depth + 1)
+jumpForward program depth =
+    jumpForward (next program) depth
 
 
-runProgram (Machine tape output (Program before ('+' : rest))) =
-    runProgram (Machine (increment tape) output (next(Program before ('+' : rest))))
-runProgram (Machine tape output (Program before ('-' : rest))) =
-    runProgram (Machine (decrement tape) output (next(Program before ('-' : rest))))
+runProgram (Machine tape output program@(Program _ ('+':_))) =
+    runProgram (Machine (increment tape) output (next program))
+runProgram (Machine tape output program@(Program _ ('-':_))) =
+    runProgram (Machine (decrement tape) output (next program))
 
-runProgram (Machine tape output (Program before ('.' : rest))) = do
-    runProgram (Machine tape (output ++ [printOut tape]) (next(Program before ('.' : rest))))
-runProgram (Machine tape output (Program before (',' : rest))) = do
+runProgram (Machine tape output program@(Program _ ('.':_))) = do
+    runProgram (Machine tape (output ++ [printOut tape]) (next program))
+runProgram (Machine tape output program@(Program _ (',':_))) = do
     readTape <- (readIn tape)
-    runProgram (Machine readTape output (next(Program before (',' : rest))))
+    runProgram (Machine readTape output (next program))
 
-runProgram (Machine tape output (Program before ('>' : rest))) =
-    runProgram (Machine (forward tape) output (next(Program before ('>' : rest))))
-runProgram (Machine tape output (Program before ('<' : rest))) =
-    runProgram (Machine (back tape) output (next(Program before ('<' : rest))))
+runProgram (Machine tape output program@(Program _ ('>':_))) =
+    runProgram (Machine (forward tape) output (next program))
+runProgram (Machine tape output program@(Program _ ('<':_))) =
+    runProgram (Machine (back tape) output (next program))
 
-runProgram (Machine tape output (Program before ('[' : rest))) =
-    runProgram (begin (Machine tape output (Program before ('[' : rest))))
-runProgram (Machine tape output (Program before (']' : rest))) =
-    runProgram (end (Machine tape output (Program before (']' : rest))))
+runProgram (Machine tape output program@(Program _ ('[':_))) =
+    runProgram (begin (Machine tape output program))
+runProgram (Machine tape output program@(Program _ (']':_))) =
+    runProgram (end (Machine tape output program))
 
-runProgram (Machine tape output (Program before (cur:rest))) =
-    runProgram (Machine tape output (next(Program before (cur:rest))))
-runProgram (Machine tape output (Program before "")) =
-    return (Machine tape output (Program before ""))
+runProgram (Machine tape output program@(Program _ (_:_))) =
+    runProgram (Machine tape output (next program))
+runProgram (Machine tape output program@(Program _ "")) =
+    return (Machine tape output program)
 runProgram other =
     return (Machine (Tape [] []) "" (Program "" ""))
 
