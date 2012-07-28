@@ -29,6 +29,12 @@ back (Tape [] after) =
 back (Tape before after) =
     Tape (init(before)) (last(before) : after)
 
+next (Program before after) =
+    Program (before ++ [head(after)]) (tail(after))
+prev (Program before after) =
+    Program (init(before)) (last(before) : after)
+
+
 printOut (Tape before after) =
     chr (head(after))
 readIn (Tape before (_ : rest)) = do
@@ -43,10 +49,6 @@ begin (Machine (Tape before (0:after)) out program) =
     (Machine (Tape before (0:after)) out (jumpForward program (-1)))
 begin (Machine tape out program) =
     (Machine tape out (next(program)))
-
-
-next (Program before after) =
-    Program (before ++ [head(after)]) (tail(after))
 
 
 jumpBack :: Program -> Int -> Program
