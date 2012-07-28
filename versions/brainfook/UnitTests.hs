@@ -11,7 +11,9 @@ aTapeAtPosition tape 0 = (tape, [])
 aTapeAtPosition (x:xs) pos = (xs, x:bs)
     where (_, bs) = aTapeAtPosition xs $ pos - 1
 
-aMachineWithProgram p = (Machine anEmptyTape "" (Program "" p))
+aProgramAtPosition :: String -> Int -> Program
+aProgramAtPosition text pos = (Program (take pos text) (drop pos text))
+aMachineWithProgram p = (Machine anEmptyTape "" (aProgramAtPosition p 0))
 
 main = hspecX $ do
 
@@ -50,25 +52,25 @@ main = hspecX $ do
 
     describe "loop" $ do
         it "jumps back on nonzero" $ do
-            end (Machine (aTapeAtPosition [0, 1] 1) "" (Program "[" "]")) @?=
-               (Machine (aTapeAtPosition [0, 1] 1) "" (Program "" "[]"))
+            end (Machine (aTapeAtPosition [0, 1] 1) "" (aProgramAtPosition "[]" 1)) @?=
+               (Machine (aTapeAtPosition [0, 1] 1) "" (aProgramAtPosition "[]" 0))
         it "doesn't jump back on zero" $ do
-            end (Machine (aTapeAtPosition [0, 0] 1) "" (Program "[" "]")) @?=
-               (Machine (aTapeAtPosition [0, 0] 1) "" (Program "[]" ""))
+            end (Machine (aTapeAtPosition [0, 0] 1) "" (aProgramAtPosition "[]" 1)) @?=
+               (Machine (aTapeAtPosition [0, 0] 1) "" (aProgramAtPosition "[]" 2))
         it "jumps forward on zero" $ do
-            begin (Machine (aTapeAtPosition [0, 0] 1) "" (Program "" "[+]")) @?=
-               (Machine (aTapeAtPosition [0, 0] 1) "" (Program "[+" "]"))
+            begin (Machine (aTapeAtPosition [0, 0] 1) "" (aProgramAtPosition "[+]" 0)) @?=
+               (Machine (aTapeAtPosition [0, 0] 1) "" (aProgramAtPosition "[+]" 2))
         it "doesn't jump forward on nonzero" $ do
-            begin (Machine (aTapeAtPosition [0, 1] 1) "" (Program "" "[+]")) @?=
-               (Machine (aTapeAtPosition [0, 1] 1) "" (Program "[" "+]"))
+            begin (Machine (aTapeAtPosition [0, 1] 1) "" (aProgramAtPosition "[+]" 0)) @?=
+               (Machine (aTapeAtPosition [0, 1] 1) "" (aProgramAtPosition "[+]" 1))
 
     describe "nested loop" $ do
         it "jumps back to leftmost" $ do
-            end (Machine (aTapeAtPosition [0, 1] 1) "" (Program "[[]" "]")) @?=
-                (Machine (aTapeAtPosition [0, 1] 1) "" (Program "" "[[]]"))
+            end (Machine (aTapeAtPosition [0, 1] 1) "" (aProgramAtPosition "[[]]" 3)) @?=
+                (Machine (aTapeAtPosition [0, 1] 1) "" (aProgramAtPosition "[[]]" 0))
         it "jumps forward to rightmost" $ do
-            begin (Machine (aTapeAtPosition [0, 0] 1) "" (Program "" "[[]]")) @?=
-                (Machine (aTapeAtPosition [0, 0] 1) "" (Program "[[]" "]"))
+            begin (Machine (aTapeAtPosition [0, 0] 1) "" (aProgramAtPosition "[[]]" 0)) @?=
+                (Machine (aTapeAtPosition [0, 0] 1) "" (aProgramAtPosition "[[]]" 3))
 
 --    describe "runProgram" $ do
 --        it "runs a single increment" $ do
@@ -78,15 +80,15 @@ main = hspecX $ do
 --        it "increments and decrements back to zero" $ do
 --            tape(runProgram (aMachineWithProgram "++--")) @?= anEmptyTape
 --        it "prints the first item" $ do
---            output(runProgram (Machine (aTapeAtPosition [65] 0) "" (Program "" "."))) @?= "A"
+--            output(runProgram (Machine (aTapeAtPosition [65] 0) "" (aProgramAtPosition "." 0))) @?= "A"
 --        it "moves forward" $ do
---            tape(runProgram(Machine (aTapeAtPosition [65] 0) "" (Program "" ">"))) @?=
+--            tape(runProgram(Machine (aTapeAtPosition [65] 0) "" (aProgramAtPosition ">" 0))) @?=
 --                (aTapeAtPosition [65, 0] 1)
 --        it "moves backwards" $ do
---            tape(runProgram(Machine (aTapeAtPosition [65, 65] 1) "" (Program "" "<"))) @?=
+--            tape(runProgram(Machine (aTapeAtPosition [65, 65] 1) "" (aProgramAtPosition "<" 0))) @?=
 --                (aTapeAtPosition [65, 65] 0)
 --        it "loops once" $ do
---            tape(runProgram (Machine (aTapeAtPosition [1, 65] 0) "" (Program "" "[>.<-]"))) @?=
+--            tape(runProgram (Machine (aTapeAtPosition [1, 65] 0) "" (aProgramAtPosition "[>.<-]" 0))) @?=
 --                (aTapeAtPosition [0, 65] 0)
---            output(runProgram (Machine (aTapeAtPosition [1, 65] 0) "" (Program "" "[>.<-]"))) @?=
+--            output(runProgram (Machine (aTapeAtPosition [1, 65] 0) "" (aProgramAtPosition "[>.<-]" 0))) @?=
 --                "A"
