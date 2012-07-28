@@ -6,13 +6,18 @@ import Test.HUnit
 anEmptyTape :: Tape
 anEmptyTape = ([0], [])
 
+zipperForward :: ([a], [a]) -> ([a], [a])
+zipperForward (x:xs, bs) = (xs, x:bs)
+
+aZipperAtPosition :: [a] -> Int -> ([a], [a])
+aZipperAtPosition l pos = iterate zipperForward (l, []) !! pos
+
 aTapeAtPosition :: [Int] -> Int -> Tape
-aTapeAtPosition tape 0 = (tape, [])
-aTapeAtPosition (x:xs) pos = (xs, x:bs)
-    where (_, bs) = aTapeAtPosition xs $ pos - 1
+aTapeAtPosition = aZipperAtPosition
 
 aProgramAtPosition :: String -> Int -> Program
-aProgramAtPosition text pos = (Program (take pos text) (drop pos text))
+aProgramAtPosition = aZipperAtPosition
+
 aMachineWithProgram p = (Machine anEmptyTape "" (aProgramAtPosition p 0))
 
 main = hspecX $ do

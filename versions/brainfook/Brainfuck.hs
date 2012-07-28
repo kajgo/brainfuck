@@ -8,11 +8,9 @@ type Tape = ([Int], [Int])
 emptyTape :: Tape
 emptyTape = ([0], [])
 
-data Program = Program {before, after :: String}
-    deriving (Show, Eq)
-
+type Program = (String, String)
 newProgram :: String -> Program
-newProgram text = (Program "" (text ++ "\0"))
+newProgram text = ((text ++ "\0"), "")
 
 data Machine = Machine {
     tape :: Tape,
@@ -25,7 +23,7 @@ atTape :: Tape -> Int
 atTape (cur:_, _) = cur
 
 atProgram :: Program -> Char
-atProgram (Program before (cur:rest)) = cur
+atProgram (cur:_, _) = cur
 
 putAtTape :: Tape -> Int -> Tape
 putAtTape (_:xs, bs) v = (v:xs, bs)
@@ -38,10 +36,8 @@ back l@(xs, []) = l
 back (xs, x:bs) =
     (x:xs, bs)
 
-next (Program before after) =
-    Program (before ++ [head(after)]) (tail(after))
-prev (Program before after) =
-    Program (init(before)) (last(before) : after)
+next (x:xs, bs) = (xs, x:bs)
+prev (xs, x:bs) = (x:xs, bs)
 
 
 increment :: Tape -> Tape
