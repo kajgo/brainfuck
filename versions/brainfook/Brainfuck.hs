@@ -2,11 +2,15 @@ module Brainfuck where
 
 import Data.Char
 
-data Tape = Tape {memBefore, memAfter :: [Int]}
-    deriving (Show, Eq)
+-- Tape is a list containing current focus and a list with the skipped elements in reverse order
+type Tape = ([Int], [Int])
 
-data Program = Program {before, after :: String}
-    deriving (Show, Eq)
+emptyTape :: Tape
+emptyTape = ([0], [])
+
+type Program = (String, String)
+newProgram :: String -> Program
+newProgram text = ((text ++ "\0"), "")
 
 data Machine = Machine {
     tape :: Tape,
@@ -15,93 +19,82 @@ data Machine = Machine {
     deriving (Show, Eq)
 
 
-increment (Tape before after) =
-    Tape (before) ( head(after) + 1 : tail(after) )
-decrement (Tape before after) =
-    Tape (before) ( head(after) - 1 : tail(after) )
+atTape :: Tape -> Int
+atTape (cur:_, _) = cur
 
-forward (Tape before [x]) =
-    Tape (before ++ [x]) [0]
-forward (Tape before after) =
-    Tape (before ++ [head(after)]) (tail(after))
-back (Tape [] after) =
-    Tape ([]) (after)
-back (Tape before after) =
-    Tape (init(before)) (last(before) : after)
+atProgram :: Program -> Char
+atProgram (cur:_, _) = cur
 
-printOut (Tape before after) =
-    chr (head(after))
-readIn (Tape before (_ : rest)) = do
+putAtTape :: Tape -> Int -> Tape
+putAtTape (_:xs, bs) v = (v:xs, bs)
+
+forward (x:[], bs) =
+    ([0], x:bs)
+forward (x:xs, bs) =
+    (xs, x:bs)
+back l@(xs, []) = l
+back (xs, x:bs) =
+    (x:xs, bs)
+
+next (x:xs, bs) = (xs, x:bs)
+prev (xs, x:bs) = (x:xs, bs)
+
+
+increment :: Tape -> Tape
+increment tape =
+    putAtTape tape $ atTape tape + 1
+
+decrement :: Tape -> Tape
+decrement tape =
+    putAtTape tape $ atTape tape - 1
+
+printOut tape = chr $ atTape tape
+readIn tape = do
     c <- getChar
-    return (Tape before ((ord c) : rest))
+    return $ putAtTape tape (ord c)
 
-end (Machine (Tape before (0:after)) out program) =
-    (Machine (Tape before (0:after)) out (next(program)))
 end (Machine tape out program) =
-    (Machine tape out (jumpBack program (-1)))
-begin (Machine (Tape before (0:after)) out program) =
-    (Machine (Tape before (0:after)) out (jumpForward program (-1)))
+    case atTape tape of
+      0 -> (Machine tape out (next(program)))
+      otherwise -> (Machine tape out (jumpBack program (-1)))
 begin (Machine tape out program) =
-    (Machine tape out (next(program)))
-
-
-next (Program before after) =
-    Program (before ++ [head(after)]) (tail(after))
-
+    case atTape tape of
+      0 -> (Machine tape out (jumpForward program (-1)))
+      otherwise -> (Machine tape out (next(program)))
 
 jumpBack :: Program -> Int -> Program
-jumpBack (Program before ('[':rest)) 0 =
-    (Program before ('[':rest))
-jumpBack (Program before ('[':rest)) depth =
-    jumpBack (Program (init(before)) ((last(before)):'[':rest)) (depth - 1)
-jumpBack (Program before (']':rest)) depth =
-    jumpBack (Program (init(before)) ((last(before)):']':rest)) (depth + 1)
-jumpBack (Program before after) depth =
-    jumpBack (Program (init(before)) ((last(before)):after)) depth
+jumpBack p depth = case (atProgram p, depth) of
+                 ('[', 0) -> p
+                 ('[', _) -> jumpBack (prev p) (depth - 1)
+                 (']', _) -> jumpBack (prev p) (depth + 1)
+                 otherwise -> jumpBack (prev p) depth
 
 jumpForward :: Program -> Int -> Program
-jumpForward (Program before (']':rest)) 0 =
-    (Program before (']':rest))
-jumpForward (Program before (']':rest)) depth =
-    jumpForward (Program (before ++ "]") rest) (depth - 1)
-jumpForward (Program before ('[':rest)) depth =
-    jumpForward (Program (before ++ "[") rest) (depth + 1)
-jumpForward (Program before after) depth =
-    jumpForward (Program (before ++ [head(after)]) (tail(after))) depth
+jumpForward p depth = case (atProgram p, depth) of
+                        (']', 0) -> p
+                        (']', _) -> jumpForward (next p) (depth - 1)
+                        ('[', _) -> jumpForward (next p) (depth + 1)
+                        otherwise -> jumpForward (next p) depth
 
 
-runProgram (Machine tape output (Program before ('+' : rest))) =
-    runProgram (Machine (increment tape) output (next(Program before ('+' : rest))))
-runProgram (Machine tape output (Program before ('-' : rest))) =
-    runProgram (Machine (decrement tape) output (next(Program before ('-' : rest))))
-
-runProgram (Machine tape output (Program before ('.' : rest))) = do
-    runProgram (Machine tape (output ++ [printOut tape]) (next(Program before ('.' : rest))))
-runProgram (Machine tape output (Program before (',' : rest))) = do
-    readTape <- (readIn tape)
-    runProgram (Machine readTape output (next(Program before (',' : rest))))
-
-runProgram (Machine tape output (Program before ('>' : rest))) =
-    runProgram (Machine (forward tape) output (next(Program before ('>' : rest))))
-runProgram (Machine tape output (Program before ('<' : rest))) =
-    runProgram (Machine (back tape) output (next(Program before ('<' : rest))))
-
-runProgram (Machine tape output (Program before ('[' : rest))) =
-    runProgram (begin (Machine tape output (Program before ('[' : rest))))
-runProgram (Machine tape output (Program before (']' : rest))) =
-    runProgram (end (Machine tape output (Program before (']' : rest))))
-
-runProgram (Machine tape output (Program before (cur:rest))) =
-    runProgram (Machine tape output (next(Program before (cur:rest))))
-runProgram (Machine tape output (Program before "")) =
-    return (Machine tape output (Program before ""))
-runProgram other =
-    return (Machine (Tape [] []) "" (Program "" ""))
+runProgram :: Machine -> IO Machine
+runProgram machine@(Machine tape output program) =
+    case atProgram program of
+      '+' -> runProgram (Machine (increment tape) output (next program))
+      '-' -> runProgram (Machine (decrement tape) output (next program))
+      '.' -> runProgram (Machine tape (output ++ [printOut tape]) (next program))
+      ',' -> do
+        readTape <- (readIn tape)
+        runProgram (Machine readTape output (next program))
+      '>' -> runProgram (Machine (forward tape) output (next program))
+      '<' -> runProgram (Machine (back tape) output (next program))
+      '[' -> runProgram (begin machine)
+      ']' -> runProgram (end machine)
+      '\0' -> return machine
+      otherwise -> runProgram (Machine tape output (next program))
 
 
 execute :: String -> IO ()
 execute program = do
-    machine <- runProgram (Machine (Tape [] [0]) "" (Program "" program))
-    if (tape(machine) == Tape [] [])
-        then putStr("error!")
-        else putStrLn $ output(machine) ++ "done!"
+    machine <- runProgram (Machine emptyTape "" $ newProgram program)
+    putStrLn $ output(machine) ++ "done!"
